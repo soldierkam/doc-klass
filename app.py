@@ -5,7 +5,7 @@ import os
 
 class Document:
 
-    def Document(self, path, klass=None):
+    def __init__(self, path, klass=None):
         self.__path = path
         self.__klass = klass
 
@@ -19,18 +19,20 @@ class LearningSet:
         self.__readDir()
 
     def __readDir(self):
-        self.__klasses = ()
+        self.__klasses = set()
         self.__documents = []
         for single_klass_dir in os.listdir(self.__dirName):
-            if not os.path.isdir(single_klass_dir):
+            entry_name = os.path.join(self.__dirName, single_klass_dir)
+            if not os.path.isdir(entry_name):
                 print "Ignoring entry (not dir): ", single_klass_dir
                 continue
-            self.klasses.add(singleKlassDir)
-            for doc_path in os.listdir(single_klass_dir):
+            self.__klasses.add(single_klass_dir)
+            for doc_file_name in os.listdir(entry_name):
+                doc_path = os.path.join(entry_name, doc_file_name)
                 if not os.path.isfile(doc_path):
                     print "Ignoring entry (not file): ", doc_path
                     continue
-                self.__documents.append(Document(doc_path))
+                self.__documents.append(Document(doc_path, self.__dirName))
 
     def __len__(self):
         return len(self.__documents)
