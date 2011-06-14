@@ -4,7 +4,7 @@ import os.path
 import re
 import os
 import nltk
-from nltk.stem.snowball import SnowballStemmer
+from nltk.stem.lancaster import LancasterStemmer
 
 remove_headers_pattern = re.compile(r"\n\n(.*)", re.DOTALL)
 extract_subject_pattern = re.compile(r"Subject:[ ]*(Re:[ ]*)*(.*)", re.IGNORECASE )
@@ -26,10 +26,10 @@ class Document:
         only_body = only_body.replace(">", " ") #usuwamy cytowania
         message = only_body + " " + title
         tokens = nltk.word_tokenize(message)
-        stemmer = SnowballStemmer("english", True)
+        stemmer = LancasterStemmer()
         self.__tokens = set()
         for token in tokens:
-            self.__tokens.append(stemmer.stem(token))
+            self.__tokens.add(stemmer.stem(token))
         self.__text = nltk.Text(self.__tokens)
         self.__fdist = nltk.FreqDist(self.__text);      
         
@@ -101,7 +101,7 @@ class TestingSet:
     def __read_dir(self):
         self.__documents = []
         for single_klass_dir in os.listdir(self.__dirName):
-            full_path = of.path.join(self.__dirName, single_klass_dir);
+            full_path = os.path.join(self.__dirName, single_klass_dir);
             if not os.path.isdir(full_path):
                 print "Ignoring entry (not dir): ", full_path
                 continue
