@@ -37,6 +37,12 @@ class Document:
 
     def get_klass(self):
         return self.__klass
+
+    def get_klass(self):
+        return self.__test_klass
+
+    def set_klass(self,klass):
+        self.__klass=klass
         
     def path(self):
         return str(self.__path)
@@ -88,7 +94,6 @@ class LearningSet:
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, single_klass_dir))
             print
-            break
 
     def __len__(self):
         return len(self.__documents)
@@ -103,7 +108,7 @@ class LearningSet:
         return len(self.__documents)
     
     def freq_dist(self):
-        for doc in self.__documents:
+        for doc in self.__documents:            
             klass_name = doc.get_klass()
             klass_dist = self.__fdist[klass_name]
             klass_dist.update(doc.get_tokens())
@@ -131,6 +136,20 @@ class LearningSet:
         for klass_name, freq_dist in self.__fdist.items():
             print klass_name
             print freq_dist.items()
+            
+    def classify(self,document):
+        count={}
+        for token in document.get_tokens():
+            for klass_name, klass_tokens in self.__tokens.items():
+                if klass_tokens.has_key(token):
+                    count[klass_name]+=1
+        max_value=0
+        for klass_name, value in count.items():
+            if value>max_value:
+                max_value=value
+                max_klass_name=klass_name
+        document.set_klass(max_klass_name)
+             
 
 class TestingSet:
     def __init__(self, dir):
@@ -161,13 +180,17 @@ class TestingSet:
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, test_klass=single_klass_dir))
             print
-            break
     
     def documents(self):
         return self.__documents
     
     def __len__(self):
-        return len(self.__documents)        
+        return len(self.__documents)
+    
+    def print_document_klasses(self):
+        for doc in self.__documents:
+            print doc.get_klass()+" "+doc.get_test_klass()        
+
 
 def main(learning_set_dir, testing_set_dir):
     learning_set = LearningSet(learning_set_dir)
@@ -188,3 +211,11 @@ def main(learning_set_dir, testing_set_dir):
     for doc in testing_set.documents():
         print doc.path()
         print doc.important_samples()
+    
+    raw_input("Press enter")
+    for doc in testing_set.documents():
+        learning_set.classify(doc)
+    
+    testing_set.print_document_klasses()
+        
+    
