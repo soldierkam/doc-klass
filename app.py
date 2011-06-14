@@ -114,10 +114,10 @@ class LearningSet:
             klass_dist.update(doc.get_tokens())
             
     def cut_freq_dist(self):
-        start_index = 0
-        end_index = 0
         self.__tokens = {}
         for klass_name, freq_dist in self.__fdist.items():
+            start_index = 0
+            end_index = 0        
             half_max_count = freq_dist[freq_dist.max()] / 2
             for token, count in freq_dist.items():
                 end_index += 1
@@ -139,17 +139,21 @@ class LearningSet:
             
     def classify(self,document):
         count={}
-        for token in document.get_tokens():
-            for klass_name, klass_tokens in self.__tokens.items():
-                if klass_tokens.has_key(token):
-                    count[klass_name]+=1
+        for klass_name, klass_tokens in self.__tokens.items():
+            count[klass_name]=0             
+            for klass_token in klass_tokens:   
+                for token in document.get_tokens():
+                    if klass_token[0]==token:                                         
+                        count[klass_name]+=1
         max_value=0
+        max_klass_name=None
         for klass_name, value in count.items():
             if value>max_value:
                 max_value=value
                 max_klass_name=klass_name
+        
         document.set_klass(max_klass_name)
-             
+        print max_klass_name+" "+document.get_test_klass()
 
 class TestingSet:
     def __init__(self, dir):
@@ -179,7 +183,7 @@ class TestingSet:
                 prevmsg="Current: "+str(counter)
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, test_klass=single_klass_dir))
-            print
+            print            
     
     def documents(self):
         return self.__documents
@@ -206,12 +210,7 @@ def main(learning_set_dir, testing_set_dir):
 #        print doc.path()
 #        print doc.important_samples()
     learning_set.print_tokens()
-        
-    raw_input("Press enter")
-    for doc in testing_set.documents():
-        print doc.path()
-        print doc.important_samples()
-    
+            
     raw_input("Press enter")
     for doc in testing_set.documents():
         learning_set.classify(doc)
