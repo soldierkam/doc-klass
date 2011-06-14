@@ -45,7 +45,7 @@ class Document:
             samples_number=n/self.__part_of_samples
         if samples_number==0:
             samples_number=1
-        return self.__fdist.samples()[(n/2-samples_number):(n/2+samples_number)]
+        return self.__fdist.keys()
         
 
 class LearningSet:
@@ -80,6 +80,7 @@ class LearningSet:
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, single_klass_dir))
             print
+            break
 
     def __len__(self):
         return len(self.__documents)
@@ -122,6 +123,7 @@ class TestingSet:
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, test_klass=single_klass_dir))
             print
+            break
     
     def documents(self):
         return self.__documents
