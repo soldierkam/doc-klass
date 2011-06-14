@@ -31,9 +31,13 @@ class Document:
         for token in tokens:
             self.__tokens.add(stemmer.stem(token))
         self.__text = nltk.Text(self.__tokens)
-        self.__fdist = nltk.FreqDist(self.__text);      
         
+    def get_tokens(self):
+        return self.__text
 
+    def get_klass(self):
+        return self.__klass
+        
     def path(self):
         return str(self.__path)
     
@@ -45,7 +49,7 @@ class Document:
             samples_number=n/self.__part_of_samples
         if samples_number==0:
             samples_number=1
-        return self.__fdist.samples()[(n/2-samples_number):(n/2+samples_number)]
+        return self.__fdist.keys()
         
 
 class LearningSet:
@@ -53,9 +57,12 @@ class LearningSet:
     def __init__(self, dir):
         self.__dirName = dir
         self.__read_dir()
+        self.freq_dist()
+        self.cut_freq_dist()
 
     def __read_dir(self):
         self.__klasses = set()
+        self.__fdist = {}
         self.__documents = []
         for single_klass_dir in os.listdir(self.__dirName):
             full_path = os.path.join(self.__dirName, single_klass_dir);
@@ -63,6 +70,7 @@ class LearningSet:
                 print "Ignoring entry (not dir): ", full_path
                 continue
             self.__klasses.add(single_klass_dir)
+            self.__fdist[single_klass_dir] = nltk.FreqDist()
             print "Class: %s" % (single_klass_dir)
             listing=os.listdir(full_path)
             print "Total: " + str(len(listing))
@@ -92,6 +100,36 @@ class LearningSet:
 
     def __len__(self):
         return len(self.__documents)
+    
+    def freq_dist(self):
+        for doc in self.__documents:
+            klass_name = doc.get_klass()
+            klass_dist = self.__fdist[klass_name]
+            klass_dist.update(doc.get_tokens())
+            
+    def cut_freq_dist(self):
+        start_index = 0
+        end_index = 0
+        self.__tokens = {}
+        for klass_name, freq_dist in self.__fdist.items():
+            half_max_count = freq_dist[freq_dist.max()] / 2
+            for token, count in freq_dist.items():
+                end_index += 1
+                if count > half_max_count:
+                    start_index += 1
+                elif count < 3:
+                    break
+            self.__tokens[klass_name] = freq_dist.items()[start_index:end_index]
+            
+    def print_tokens(self):
+        for klass_name, klass_tokens in self.__tokens.items():
+            print klass_name
+            print klass_tokens
+            
+    def print_freq_dist(self):
+        for klass_name, freq_dist in self.__fdist.items():
+            print klass_name
+            print freq_dist.items()
 
 class TestingSet:
     def __init__(self, dir):
@@ -139,9 +177,10 @@ def main(learning_set_dir, testing_set_dir):
     #test Document.important_samples
     
     raw_input("Press enter")
-    for doc in learning_set.documents():
-        print doc.path()
-        print doc.important_samples()
+#    for doc in learning_set.documents():
+#        print doc.path()
+#        print doc.important_samples()
+    learning_set.print_tokens()
         
     raw_input("Press enter")
     for doc in testing_set.documents():
