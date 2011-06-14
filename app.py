@@ -1,9 +1,13 @@
+import os.path
 # -*- coding: UTF-8 -*-
 
-import sys
+import re
 import os
 import nltk
+from nltk.stem.snowball import SnowballStemmer
 
+remove_headers_pattern = re.compile(r"\n\n(.*)", re.DOTALL)
+extract_subject_pattern = re.compile(r"Subject:[ ]*(Re:[ ]*)*(.*)", re.IGNORECASE )
 
 class Document:
     __max_important_samples=5
@@ -15,7 +19,17 @@ class Document:
         self.__test_klass = test_klass
         f=open(path)
         raw=f.read()
-        self.__tokens = nltk.word_tokenize(raw)
+        body_results = remove_headers_pattern.search(raw)
+        title_results = extract_subject_pattern.search(raw)
+        title = title_results.group(2)
+        only_body = body_results.group(1)
+        only_body = only_body.replace(">", " ") #usuwamy cytowania
+        message = only_body + " " + title
+        tokens = nltk.word_tokenize(message)
+        stemmer = SnowballStemmer("english", True)
+        self.__tokens = set()
+        for token in tokens:
+            self.__tokens.append(stemmer.stem(token))
         self.__text = nltk.Text(self.__tokens)
         self.__fdist = nltk.FreqDist(self.__text);      
         
@@ -38,20 +52,20 @@ class LearningSet:
 
     def __init__(self, dir):
         self.__dirName = dir
-        self.__readDir()
+        self.__read_dir()
 
-    def __readDir(self):
+    def __read_dir(self):
         self.__klasses = set()
         self.__documents = []
         for single_klass_dir in os.listdir(self.__dirName):
-            full_path = self.__dirName + single_klass_dir;
+            full_path = os.path.join(self.__dirName, single_klass_dir);
             if not os.path.isdir(full_path):
-                print "Ignoring entry (not dir): ", single_klass_dir
+                print "Ignoring entry (not dir): ", full_path
                 continue
-            self.__klasses += (single_klass_dir,)
-            print "Class: "+single_klass_dir
+            self.__klasses.add(single_klass_dir)
+            print "Class: %s" % (single_klass_dir)
             listing=os.listdir(full_path)
-            print "Total: "+str(len(listing))
+            print "Total: " + str(len(listing))
             counter=0
             prevmsg=""
             for doc_path in listing:
@@ -61,7 +75,7 @@ class LearningSet:
                     prevmsg=""
                     continue
                 counter+=1
-                print "\b"*(len(prevmsg)+2),
+                print "\b" * (len(prevmsg)+2),
                 prevmsg="Current: "+str(counter)
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, single_klass_dir))
@@ -82,14 +96,14 @@ class LearningSet:
 class TestingSet:
     def __init__(self, dir):
         self.__dirName = dir
-        self.__readDir()
+        self.__read_dir()
    
-    def __readDir(self):
+    def __read_dir(self):
         self.__documents = []
         for single_klass_dir in os.listdir(self.__dirName):
-            full_path = self.__dirName + single_klass_dir;
+            full_path = of.path.join(self.__dirName, single_klass_dir);
             if not os.path.isdir(full_path):
-                print "Ignoring entry (not dir): ", single_klass_dir
+                print "Ignoring entry (not dir): ", full_path
                 continue
             print "Class: "+single_klass_dir
             listing=os.listdir(full_path)
@@ -97,7 +111,7 @@ class TestingSet:
             counter=0
             prevmsg=""
             for doc_path in os.listdir(full_path):
-                doc_full_path = full_path + os.sep + doc_path;
+                doc_full_path = os.path.join(full_path, doc_path);
                 if not os.path.isfile(doc_full_path):
                     print "\nIgnoring entry (not file): ", doc_full_path
                     prevmsg=""
