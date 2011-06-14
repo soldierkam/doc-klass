@@ -38,7 +38,7 @@ class Document:
     def get_klass(self):
         return self.__klass
 
-    def get_klass(self):
+    def get_test_klass(self):
         return self.__test_klass
 
     def set_klass(self,klass):
