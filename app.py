@@ -44,8 +44,11 @@ class Document:
     def set_klass(self,klass):
         self.__klass=klass
         
-    def path(self):
+    def get_path(self):
         return str(self.__path)
+    
+    def get_file_name(self):
+        return str(os.path.basename(self.__path))
     
     def important_samples(self):
         n=self.__fdist.N()
@@ -125,7 +128,10 @@ class LearningSet:
                     start_index += 1
                 elif count < 3:
                     break
-            self.__tokens[klass_name] = freq_dist.items()[start_index:end_index]
+            self.__tokens[klass_name] = {}
+            for token, count in freq_dist.items()[start_index:end_index]:
+                self.__tokens[klass_name][token] = count
+            
             
     def print_tokens(self):
         for klass_name, klass_tokens in self.__tokens.items():
@@ -139,21 +145,25 @@ class LearningSet:
             
     def classify(self,document):
         count={}
-        for klass_name, klass_tokens in self.__tokens.items():
+        for klass_name in self.__tokens.keys():
+            klass_tokens = self.__tokens[klass_name]
             count[klass_name]=0             
-            for klass_token in klass_tokens:   
-                for token in document.get_tokens():
-                    if klass_token[0]==token:                                         
-                        count[klass_name]+=1
+            for document_token in document.get_tokens():
+                if klass_tokens.has_key(document_token):
+                    count[klass_name] += klass_tokens[document_token]
         max_value=0
         max_klass_name=None
+        doc_klass_name=document.get_test_klass()
         for klass_name, value in count.items():
             if value>max_value:
                 max_value=value
                 max_klass_name=klass_name
         
         document.set_klass(max_klass_name)
-        print max_klass_name+" "+document.get_test_klass()
+        is_correct = doc_klass_name == max_klass_name
+        print "%s: %s as %s\t\t%s" % (document.get_file_name(), doc_klass_name, max_klass_name, "OK" if is_correct else "FAIL")
+        return is_correct
+        
 
 class TestingSet:
     def __init__(self, dir):
@@ -212,9 +222,13 @@ def main(learning_set_dir, testing_set_dir):
     learning_set.print_tokens()
             
     raw_input("Press enter")
+    correct_class = 0
+    all_documents = len(testing_set)
     for doc in testing_set.documents():
-        learning_set.classify(doc)
+        if learning_set.classify(doc):
+            correct_class += 1;
     
-    testing_set.print_document_klasses()
+    print "Correctness: %d / %d - %f %%" % (correct_class, all_documents, (100 * correct_class) / all_documents )
+    #testing_set.print_document_klasses()
         
     
