@@ -223,7 +223,7 @@ class LearningSet:
             count[klass_name]=0             
             for document_bigrams in document.get_bigrams():
                 if klass_bigrams.has_key(document_bigrams):
-                    count[klass_name] += klass_bigrams[document_bigrams]
+                    count[klass_name] += 1#klass_bigrams[document_bigrams]
         max_value=0
         max_klass_name=""
         doc_klass_name=document.get_test_klass()
@@ -238,7 +238,7 @@ class LearningSet:
         if not is_correct:
             logger_failed.info("#########################################\n")
             logger_failed.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
-            logger_failed.debug("Counts: %s" % str(count))        
+            logger_failed.info("Counts: %s" % str(count))        
         
         logger.info("######################################### %s\n" % ("OK" if is_correct else "FAIL") )
         logger.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
