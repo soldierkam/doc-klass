@@ -8,6 +8,7 @@ import logging
 import datetime
 from nltk.stem.lancaster import LancasterStemmer
 from nltk import bigrams
+from nltk.corpus import stopwords
 #import enchant
 
 remove_headers_pattern = re.compile(r"\n\n(.*)", re.DOTALL)
@@ -53,7 +54,8 @@ logger_wrong_words.addHandler(file_wrong_words)
 class Document:
     __max_important_samples=5
     __part_of_samples=4
-
+    __stopwords = stopwords.words();
+        
     def __init__(self, path, klass=None, test_klass=None):
         self.__path = path
         self.__klass = klass
@@ -69,7 +71,7 @@ class Document:
         bigrams.extend(self._get_bigrams_from_message(title))
         logger_bigrams.info("Bigrams:%s \n" % str(bigrams))
         logger_bigrams.debug("Title:%s \nMsg:%s \n" %(title, only_body))
-        self.__bigrams = nltk.Text(bigrams)
+        self.__bigrams = nltk.Text(set(bigrams))
         
     def _get_bigrams_from_message(self, message):
         message = message.replace(">", " ") #usuwamy cytowania
@@ -93,8 +95,22 @@ class Document:
             else:
                 logger_wrong_words.info("%s file: %s" % (token, self.get_file_name()))
         logger_bigrams.debug("Words: %s" % str(words))
-        return bigrams(words)
-        
+        return self._filter_stopwords(bigrams(words))
+    
+    def _filter_stopwords(self, bigrams):
+        results = []
+        for bigram_tuple in bigrams:
+            stop_words_count = self.__stopwords.count(bigram_tuple[0]) + \
+                self.__stopwords.count(bigram_tuple[1])
+            if stop_words_count > 1:
+                logger_bigrams.info("Ignoring bigram %s - contains only stopwords" % (str(bigram_tuple)))
+                pass
+            if bigram_tuple[0].isdigit() and bigram_tuple[1].isdigit():
+                logger_bigrams.info("Ignoring bigram %s - contains only digits" % (str(bigram_tuple)))
+                pass
+            results.append(bigram_tuple)
+        return results    
+    
     def get_bigrams_tuple(self):
         return self.__bigrams
     
@@ -138,6 +154,10 @@ class LearningSet:
         self.__read_dir()
         self.freq_dist()
         self.cut_freq_dist()
+        self.__klass_matrix = {}
+        for document_klass_name in self.__bigrams.keys():
+            for document_test_klass_name in self.__bigrams.keys():
+                self.__klass_matrix[(document_klass_name, document_test_klass_name)] = 0        
 
     def __read_dir(self):
         self.__klasses = set()
@@ -192,17 +212,8 @@ class LearningSet:
     def cut_freq_dist(self):
         self.__bigrams = {}
         for klass_name, freq_dist in self.__fdist.items():
-            start_index = 0
-            end_index = 0        
-            half_max_count = freq_dist[freq_dist.max()] / 2
-            for bigram, count in freq_dist.items():
-                end_index += 1
-                if count > half_max_count:
-                    start_index += 1
-                elif count < BIGRAM_MIN_COUNT:
-                    break
             self.__bigrams[klass_name] = {}
-            for bigram, count in freq_dist.items()[start_index:end_index]:
+            for bigram, count in freq_dist.items():
                 self.__bigrams[klass_name][bigram] = count
             
             
@@ -216,16 +227,26 @@ class LearningSet:
             logger.info("Klass name: " + klass_name)
             logger.info(str(freq_dist.items()))
             
+    def _calc_bigram_value(self, bigram):
+        klasses_count = len(self.__bigrams.keys()) + 1
+        count_bigram_in_klasses = 0
+        for klass_bigrams in self.__bigrams.values():
+            count_bigram_in_klasses += 1 if klass_bigrams.has_key(bigram) else 0
+        value = klasses_count - count_bigram_in_klasses;
+        assert(value >= 0)
+        return value
+        
     def classify(self,document):
+            
         count={}
         for klass_name in self.__bigrams.keys():
             klass_bigrams = self.__bigrams[klass_name]
             count[klass_name]=0             
-            for document_bigrams in document.get_bigrams():
-                if klass_bigrams.has_key(document_bigrams):
-                    count[klass_name] += 1#klass_bigrams[document_bigrams]
+            for document_bigram in document.get_bigrams():
+                if klass_bigrams.has_key(document_bigram):
+                    count[klass_name] += self._calc_bigram_value(document_bigram)#klass_bigrams[document_bigrams]
         max_value=0
-        max_klass_name=""
+        max_klass_name=count.keys()[0]
         doc_klass_name=document.get_test_klass()
         for klass_name, value in count.items():
             if value>max_value:
@@ -234,17 +255,50 @@ class LearningSet:
         
         document.set_klass(max_klass_name)
         is_correct = doc_klass_name == max_klass_name
+        self.__klass_matrix[(max_klass_name, doc_klass_name)] += 1
         
         if not is_correct:
-            logger_failed.info("#########################################\n")
+            logger_failed.info("\n#########################################\n")
             logger_failed.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
-            logger_failed.info("Counts: %s" % str(count))        
-        
-        logger.info("######################################### %s\n" % ("OK" if is_correct else "FAIL") )
+            logger_failed.info("Counts: %s" % str(count))  
+            
+            wrong_class_bigrams = self.__bigrams[max_klass_name]
+            correct_class_bigrams = self.__bigrams[doc_klass_name]
+            line_w_args = []
+            line_c_args = []
+            for document_bigram in document.get_bigrams():
+                if wrong_class_bigrams.has_key(document_bigram):
+                    line_w_args.append(document_bigram)
+                if correct_class_bigrams.has_key(document_bigram):
+                    line_c_args.append(document_bigram)
+            logger_failed.info("\nDocument and wrong class bigrams:" + str(line_w_args))
+            logger_failed.info("\nDocument and corrent class bigrams:"+ str(line_c_args))
+            
+        logger.info("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
         logger.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
         logger.debug("Counts: %s" % str(count))
         return is_correct
+    
+    def print_klass_matrix(self):
+        columns = len(self.__bigrams.keys())
+        line = " %s %s" + ("%s" * columns)
+        max_klass_name_len = 0
+        for klass_name in self.__bigrams.keys():
+            max_klass_name_len = max(max_klass_name_len, len(klass_name))
         
+        first_line_arg = [" " * (max_klass_name_len + 2)]
+        for id in range(97,columns + 97):
+            first_line_arg.append(chr(id).rjust(4))
+        first_line = " %s" + ("%s" * columns)
+        logger.info(first_line % tuple(first_line_arg))
+        
+        klass_id = 97
+        for real_klass_name in self.__bigrams.keys():
+            arg = [chr(klass_id), real_klass_name.ljust(max_klass_name_len)]
+            klass_id += 1
+            for classifier_klass_name in self.__bigrams.keys():
+                arg.append(str(self.__klass_matrix[(classifier_klass_name, real_klass_name)]).rjust(4))
+            logger.info(line % tuple(arg))        
 
 class TestingSet:
     def __init__(self, dir):
@@ -302,7 +356,8 @@ def main(learning_set_dir, testing_set_dir):
         if learning_set.classify(doc):
             correct_class += 1;
     
-    logger.info("Correctness: %d / %d - %f %%" % (correct_class, all_documents, (100 * correct_class) / all_documents ))
+    logger.info("Correctness: %d / %d - %f %%" % (correct_class, all_documents, (float(100) * correct_class) / all_documents ))
     #testing_set.print_document_klasses()
+    learning_set.print_klass_matrix()
     logger_wrong_words.info("End")
     
