@@ -35,43 +35,47 @@ logger.addHandler(console)
 logger_failed = logging.getLogger("failed")
 logger_failed.setLevel(logging.INFO)
 logger_failed.propagate = False
-file_failed = logging.FileHandler("failed.txt", mode="w")
+file_failed = logging.FileHandler("failed.log", mode="w")
 logger_failed.addHandler(file_failed)
 
 
 logger_bigrams = logging.getLogger("bigrams")
 logger_bigrams.setLevel(logging.INFO)
 logger_bigrams.propagate = False
-file_bigrams = logging.FileHandler("bigrams.txt", mode="w")
+file_bigrams = logging.FileHandler("bigrams.log", mode="w")
 logger_bigrams.addHandler(file_bigrams)
 
 logger_wrong_words = logging.getLogger("bigrams.words")
 logger_wrong_words.setLevel(logging.INFO)
-file_wrong_words = logging.FileHandler("wrong_words.txt", mode="w")
+file_wrong_words = logging.FileHandler("wrong_words.log", mode="w")
 logger_wrong_words.addHandler(file_wrong_words)
 
 
 class Document:
     __max_important_samples=5
     __part_of_samples=4
-    __stopwords = stopwords.words();
+    __stopwords = stopwords.words('english');
         
     def __init__(self, path, klass=None, test_klass=None):
         self.__path = path
         self.__klass = klass
         self.__test_klass = test_klass
         logger_bigrams.info("###############################################################\nFile: %s\n" % self.get_file_name())
-        f=open(path)
-        raw=f.read()
-        body_results = remove_headers_pattern.search(raw)
-        title_results = extract_subject_pattern.search(raw)
-        title = title_results.group(2)
-        only_body = body_results.group(1)
+        title, only_body = self.read_content();
         bigrams = self._get_bigrams_from_message(only_body)
         bigrams.extend(self._get_bigrams_from_message(title))
         logger_bigrams.info("Bigrams:%s \n" % str(bigrams))
         logger_bigrams.debug("Title:%s \nMsg:%s \n" %(title, only_body))
         self.__bigrams = nltk.Text(set(bigrams))
+        
+    def read_content(self):
+        f=open(self.__path)
+        raw=f.read()
+        body_results = remove_headers_pattern.search(raw)
+        title_results = extract_subject_pattern.search(raw)
+        title = title_results.group(2)
+        only_body = body_results.group(1)
+        return (title, only_body)
         
     def _get_bigrams_from_message(self, message):
         message = message.replace(">", " ") #usuwamy cytowania
@@ -100,14 +104,21 @@ class Document:
     def _filter_stopwords(self, bigrams):
         results = []
         for bigram_tuple in bigrams:
-            stop_words_count = self.__stopwords.count(bigram_tuple[0]) + \
-                self.__stopwords.count(bigram_tuple[1])
-            if stop_words_count > 1:
-                logger_bigrams.info("Ignoring bigram %s - contains only stopwords" % (str(bigram_tuple)))
+            stop_words_count = 0
+            for i in bigram_tuple:
+                stop_words_count += self.__stopwords.count(i)
+                
+            if stop_words_count >= len(bigram_tuple):
+                logger_bigrams.info("Ignoring bigram %s - contains only stopwords(%d)" % (str(bigram_tuple), stop_words_count))
                 pass
-            if bigram_tuple[0].isdigit() and bigram_tuple[1].isdigit():
+            
+            isdigit_count = 0
+            for i in bigram_tuple:
+                isdigit_count += 1 if i.isdigit() else 0
+            if isdigit_count >= len(bigram_tuple):
                 logger_bigrams.info("Ignoring bigram %s - contains only digits" % (str(bigram_tuple)))
                 pass
+            
             results.append(bigram_tuple)
         return results    
     
@@ -234,7 +245,7 @@ class LearningSet:
             count_bigram_in_klasses += 1 if klass_bigrams.has_key(bigram) else 0
         value = klasses_count - count_bigram_in_klasses;
         assert(value >= 0)
-        return value
+        return pow(1.5, value)
         
     def classify(self,document):
             
@@ -260,7 +271,7 @@ class LearningSet:
         if not is_correct:
             logger_failed.info("\n#########################################\n")
             logger_failed.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
-            logger_failed.info("Counts: %s" % str(count))  
+            logger_failed.info("Counts: %s" % str(sorted(count.items(), key= lambda i: i[1], reverse=True)))  
             
             wrong_class_bigrams = self.__bigrams[max_klass_name]
             correct_class_bigrams = self.__bigrams[doc_klass_name]
@@ -273,6 +284,7 @@ class LearningSet:
                     line_c_args.append(document_bigram)
             logger_failed.info("\nDocument and wrong class bigrams:" + str(line_w_args))
             logger_failed.info("\nDocument and corrent class bigrams:"+ str(line_c_args))
+            logger_failed.info("\nDocument title: %s\nContent:\n%s" % document.read_content())
             
         logger.info("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
         logger.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
