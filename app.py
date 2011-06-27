@@ -308,6 +308,7 @@ class LearningSet:
         for id in range(97,columns + 97):
             first_line_arg.append(chr(id).rjust(4))
         first_line = " %s" + ("%s" * columns)
+        logger.info("\nMatrix:")
         logger.info(first_line % tuple(first_line_arg))
         
         klass_id = 97
@@ -338,17 +339,16 @@ class LearningSet:
                     for klass_name in self.__bigrams.keys():
                         if klass_name!=classifier_klass_name:
                             fn[klass_name]+=self.__klass_matrix[(classifier_klass_name,real_klass_name)]
-                       
         
-             
-        for i in self.__bigrams.keys():
-            
-            precision=float(tp[i])/float(tp[i]+fp[i])
-            recall=float(tp[i])/float(tp[i]+fn[i])
-            specificity=float(tn[i])/float(tn[i]+fp[i])
-            accuracy=float(tp[i]+tn[i])/float(tp[i]+tn[i]+fp[i]+fn[i])
-            line="Class - "+i+" precision:"+str(precision)+" recall:"+str(recall)+" specificity:"+str(specificity)+" accuracy:"+str(accuracy)
-            logger.info(line);        
+        logger.info("\nResults per class:")
+        logger.info("".ljust(26) + "precision:".ljust(15) + "recall:".ljust(15) + "specificity:".ljust(15) + "accuracy:".ljust(15))
+        for klass_name in self.__bigrams.keys():            
+            precision=float(tp[klass_name])/float(tp[klass_name]+fp[klass_name])
+            recall=float(tp[klass_name])/float(tp[klass_name]+fn[klass_name])
+            specificity=float(tn[klass_name])/float(tn[klass_name]+fp[klass_name])
+            accuracy=float(tp[klass_name]+tn[klass_name])/float(tp[klass_name]+tn[klass_name]+fp[klass_name]+fn[klass_name])
+            line=klass_name.ljust(25, '.') + " " + str(precision).ljust(15) + str(recall).ljust(15) + str(specificity).ljust(15) + str(accuracy).ljust(15)
+            logger.info(line)
                 
 class TestingSet:
     def __init__(self, dir):
