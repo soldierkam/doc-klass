@@ -28,7 +28,7 @@ logger.propagate = False
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 file = logging.FileHandler("app_" + str(datetime.datetime.now()) + ".log")
-logger.addHandler(file)
+zaralogger.addHandler(file)
 logger.addHandler(console)
 
 logger_failed = logging.getLogger("failed")
@@ -236,8 +236,8 @@ class LearningSet:
             
     def print_bigrams(self):
         for klass_name, klass_bigrams in self.__bigrams.items():
-            logger.info("Klass name: " + klass_name + "\nBigrams:")
-            logger.info(str(klass_bigrams))
+            logger.debug("Klass name: " + klass_name + "\nBigrams:")
+            logger.debug(str(klass_bigrams))
             
     def print_freq_dist(self):
         for klass_name, freq_dist in self.__bigrams.items():
@@ -292,8 +292,8 @@ class LearningSet:
             logger_failed.info("\nDocument and corrent class bigrams:"+ str(line_c_args))
             logger_failed.info("\nDocument title: %s\nContent:\n%s" % document.read_content())
             
-        logger.info("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
-        logger.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
+        logger.debug("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
+        logger.debug("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
         logger.debug("Counts: %s" % str(count))
         return is_correct
     
