@@ -99,7 +99,14 @@ class Document:
             else:
                 logger_wrong_words.info("%s file: %s" % (token, self.get_file_name()))
         logger_bigrams.debug("Words: %s" % str(words))
-        return self._filter_stopwords(bigrams(words))
+        return self._filter_stopwords(self.__create_bigrams(words))
+    
+    def __create_bigrams(self, words):
+        bigrams_list = bigrams(words)
+        count = max(0, len(words) - 2)
+        for i in range(count):
+            bigrams_list.append(tuple(words[i:i+3:2]))
+        return bigrams_list
     
     def _filter_stopwords(self, bigrams):
         results = []
@@ -245,7 +252,7 @@ class LearningSet:
             count_bigram_in_klasses += 1 if klass_bigrams.has_key(bigram) else 0
         value = klasses_count - count_bigram_in_klasses;
         assert(value >= 0)
-        return pow(1.5, value)
+        return pow(2, value)
         
     def classify(self,document):
             
