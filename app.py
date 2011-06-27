@@ -28,8 +28,12 @@ logger.propagate = False
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 file = logging.FileHandler("app_" + str(datetime.datetime.now()) + ".log")
+<<<<<<< HEAD
 #console.setLevel(logging.DEBUG)
 logger.addHandler(file)
+=======
+zaralogger.addHandler(file)
+>>>>>>> f6fd77e297be5818b555e271410126bb5a756bdf
 logger.addHandler(console)
 
 logger_failed = logging.getLogger("failed")
@@ -99,7 +103,14 @@ class Document:
             else:
                 logger_wrong_words.info("%s file: %s" % (token, self.get_file_name()))
         logger_bigrams.debug("Words: %s" % str(words))
-        return self._filter_stopwords(bigrams(words))
+        return self._filter_stopwords(self.__create_bigrams(words))
+    
+    def __create_bigrams(self, words):
+        bigrams_list = bigrams(words)
+        count = max(0, len(words) - 2)
+        for i in range(count):
+            bigrams_list.append(tuple(words[i:i+3:2]))
+        return bigrams_list
     
     def _filter_stopwords(self, bigrams):
         results = []
@@ -230,8 +241,8 @@ class LearningSet:
             
     def print_bigrams(self):
         for klass_name, klass_bigrams in self.__bigrams.items():
-            logger.info("Klass name: " + klass_name + "\nBigrams:")
-            logger.info(str(klass_bigrams))
+            logger.debug("Klass name: " + klass_name + "\nBigrams:")
+            logger.debug(str(klass_bigrams))
             
     def print_freq_dist(self):
         for klass_name, freq_dist in self.__bigrams.items():
@@ -245,7 +256,7 @@ class LearningSet:
             count_bigram_in_klasses += 1 if klass_bigrams.has_key(bigram) else 0
         value = klasses_count - count_bigram_in_klasses;
         assert(value >= 0)
-        return pow(1.5, value)
+        return pow(2, value)
         
     def classify(self,document):
             
@@ -286,8 +297,8 @@ class LearningSet:
             logger_failed.info("\nDocument and corrent class bigrams:"+ str(line_c_args))
             logger_failed.info("\nDocument title: %s\nContent:\n%s" % document.read_content())
             
-        logger.info("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
-        logger.info("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
+        logger.debug("\n######################################### %s" % ("OK" if is_correct else "FAIL") )
+        logger.debug("%s: '%s' as '%s'" % (document.get_file_name(), doc_klass_name, max_klass_name) )
         logger.debug("Counts: %s" % str(count))
         return is_correct
     
