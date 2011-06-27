@@ -349,7 +349,7 @@ class LearningSet:
             recall=float(tp[klass_name])/float(tp[klass_name]+fn[klass_name])
             specificity=float(tn[klass_name])/float(tn[klass_name]+fp[klass_name])
             accuracy=float(tp[klass_name]+tn[klass_name])/float(tp[klass_name]+tn[klass_name]+fp[klass_name]+fn[klass_name])
-            line=klass_name.ljust(25, '.') + " " + str(precision).ljust(15) + str(recall).ljust(15) + str(specificity).ljust(15) + str(accuracy).ljust(15)
+            line=klass_name.ljust(25, '.') + " " + str(precision)[0:14].ljust(15) + str(recall)[0:14].ljust(15) + str(specificity)[0:14].ljust(15) + str(accuracy)[0:14].ljust(15)
             logger.info(line)
                 
 class TestingSet:
