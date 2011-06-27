@@ -186,7 +186,7 @@ class LearningSet:
             logger.info("Total: " + str(len(listing)))
             counter=0
             prevmsg=""
-            for doc_path in listing:
+            for doc_path in listing:                
                 doc_full_path = full_path + os.sep + doc_path;
                 if not os.path.isfile(doc_full_path):
                     logger.warning("\nIgnoring entry (not file): " + doc_full_path)
@@ -198,7 +198,7 @@ class LearningSet:
                 print prevmsg,
                 self.__documents.append(Document(doc_full_path, single_klass_dir))
             print
-
+    
     def __len__(self):
         return len(self.__documents)
     
@@ -311,7 +311,39 @@ class LearningSet:
             for classifier_klass_name in self.__bigrams.keys():
                 arg.append(str(self.__klass_matrix[(classifier_klass_name, real_klass_name)]).rjust(4))
             logger.info(line % tuple(arg))        
-
+    
+    def print_classifier_parameters(self):
+        tp={}
+        fp={}
+        fn={}
+        tn={}
+        for classifier_klass_name in self.__bigrams.keys():
+            fp[classifier_klass_name]=0
+            fn[classifier_klass_name]=0
+            tn[classifier_klass_name]=0
+            
+        for classifier_klass_name in self.__bigrams.keys():
+            tp[classifier_klass_name]=self.__klass_matrix[(classifier_klass_name,classifier_klass_name)]           
+                        
+            for real_klass_name in self.__bigrams.keys():
+                if classifier_klass_name!=real_klass_name:
+                    fp[classifier_klass_name]+=self.__klass_matrix[(classifier_klass_name,real_klass_name)]                
+                    tn[classifier_klass_name]+=self.__klass_matrix[(real_klass_name,real_klass_name)]                    
+                    for klass_name in self.__bigrams.keys():
+                        if klass_name!=classifier_klass_name:
+                            fn[klass_name]+=self.__klass_matrix[(classifier_klass_name,real_klass_name)]
+                       
+        
+             
+        for i in self.__bigrams.keys():
+            
+            precision=float(tp[i])/float(tp[i]+fp[i])
+            recall=float(tp[i])/float(tp[i]+fn[i])
+            specificity=float(tn[i])/float(tn[i]+fp[i])
+            accuracy=float(tp[i]+tn[i])/float(tp[i]+tn[i]+fp[i]+fn[i])
+            line="Class - "+i+" precision:"+str(precision)+" recall:"+str(recall)+" specificity:"+str(specificity)+" accuracy:"+str(accuracy)
+            logger.info(line);        
+                
 class TestingSet:
     def __init__(self, dir):
         self.__dirName = dir
@@ -371,5 +403,6 @@ def main(learning_set_dir, testing_set_dir):
     logger.info("Correctness: %d / %d - %f %%" % (correct_class, all_documents, (float(100) * correct_class) / all_documents ))
     #testing_set.print_document_klasses()
     learning_set.print_klass_matrix()
+    learning_set.print_classifier_parameters()
     logger_wrong_words.info("End")
     
