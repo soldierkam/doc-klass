@@ -28,7 +28,6 @@ logger.propagate = False
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 file = logging.FileHandler("app_" + str(datetime.datetime.now()) + ".log")
-console.setLevel(logging.DEBUG)
 logger.addHandler(file)
 logger.addHandler(console)
 
