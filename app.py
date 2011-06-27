@@ -29,6 +29,8 @@ console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 file = logging.FileHandler("app_" + str(datetime.datetime.now()) + ".log")
 logger.addHandler(file)
+logger.addHandler(file)
+logger.addHandler(file)
 logger.addHandler(console)
 
 logger_failed = logging.getLogger("failed")
